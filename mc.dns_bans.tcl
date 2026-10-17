@@ -1,5 +1,5 @@
 ##
-# DNS Bans v1.3
+# DNS Bans v1.3.1
 #  by MC_8 - Carl M. Gregory <mc8@purehype.net>
 #  This script will only run on eggdrop 1.6.14 or greater.
 #  This script requires the DNS Module.
@@ -110,9 +110,9 @@ foreach {temp(name) temp(value)} [array get mc_dnsb :config:*] {
 set mc_dnsb(info:loc) [info script]
 array set mc_dnsb [list \
   script                 "DNS Bans" \
-  version                "v1.3" \
+  version                "v1.3.1" \
   svs:script             "dnsbans" \
-  svs:version            "001003000000" \
+  svs:version            "001003001000" \
   svs:client_version     "v4.0.4" \
   svs:client_svs_version "004000004000" \
   svs:server             "mc.svs.purehype.net" \
@@ -123,7 +123,7 @@ append mc_dnsb(svs:query) "version=$mc_dnsb(svs:version)&"
 append mc_dnsb(svs:query) \
   "svs_version=$mc_dnsb(svs:client_svs_version)"
 
-if {![info exists numversion] || 
+if {![info exists numversion] ||
     ([string range $numversion 0 4] < "10614") ||
     (([string range $numversion 0 4] == "10614") &&
      ([string range $numversion 5 6] != "00"))} {
@@ -210,7 +210,7 @@ proc mc:dnsb:join_ {nick uhost handle channel} {
   set cache(exempt:flags) [channel get $channel mc.dns_bans.exempt.flags]
   if {($cache(exempt:flags) != "") &&
        [matchattr $handle $cache(exempt:flags) $channel]} {return 0}
-  
+
   regexp -- (.*)@(.*) $uhost dummy ident host
   dnslookup [list $host] mc:dnsb:dnsreturn \
     [list $host $nick $ident $handle $channel]
@@ -225,11 +225,11 @@ proc mc:dnsb:mode:plso_ {nick uhost handle channel mc victim} {
   if {![isbotnick $victim] ||
       ![validchan $channel] ||
       ![channel get $channel mc.dns_bans]} {return 0}
-  
+
   set cache(exempt:op) [channel get $channel mc.dns_bans.exempt.op]
   set cache(exempt:voice) [channel get $channel mc.dns_bans.exempt.voice]
   set cache(exempt:flags) [channel get $channel mc.dns_bans.exempt.flags]
-  
+
   set list [list]
   foreach nick [chanlist $channel] {
     if {[isbotnick $nick] ||
@@ -237,15 +237,15 @@ proc mc:dnsb:mode:plso_ {nick uhost handle channel mc victim} {
         ($cache(exempt:voice) && [isvoice $nick $channel])} {continue}
     set uhost [getchanhost $nick]
     set handle [nick2hand $nick]
-    
+
     if {(($cache(exempt:flags) != "") &&
          [matchattr $handle $cache(exempt:flags) $channel]) ||
         [matchban $nick!$uhost $channel] ||
         [mc:dnsb:matchchanban $nick!$uhost $channel]} {continue}
-       
+
     lappend list $nick $uhost $handle
   }
-    
+
   foreach {nick uhost handle} $list {
     regexp -- (.*)@(.*) $uhost dummy ident host
     dnslookup [list $host] mc:dnsb:dnsreturn \
@@ -262,24 +262,24 @@ proc mc:dnsb:mode {nick uhost handle channel mc {victim ""}} {
 proc mc:dnsb:mode_ {nick uhost handle channel mc victim} {
   if {![channel get $channel mc.dns_bans]} {return 0}
   global mc_dnsb
-  
+
   set cache(exempt:op) [channel get $channel mc.dns_bans.exempt.op]
   set cache(exempt:voice) [channel get $channel mc.dns_bans.exempt.voice]
   set cache(exempt:flags) [channel get $channel mc.dns_bans.exempt.flags]
-  
+
   foreach nick [chanlist $channel] {
     if {[isbotnick $nick] ||
         ($cache(exempt:op) && [isop $nick $channel]) ||
         ($cache(exempt:voice) && [isvoice $nick $channel])} {continue}
     set uhost [getchanhost $nick]
     set handle [nick2hand $nick]
-    
+
     if {(($cache(exempt:flags) != "") &&
          [matchattr $handle $cache(exempt:flags) $channel]) ||
         [matchban $nick!$uhost $channel] ||
         [mc:dnsb:matchchanban $nick!$uhost $channel] ||
         [string match $victim $nick!$uhost]} {continue}
-        
+
     if {[regexp -- (.*)@(.*) [getchanhost $nick $channel] dummy ident host]} {
       dnslookup [list $host] mc:dnsb:dnsreturn \
         [list $host $nick $ident $handle $channel $victim]
@@ -319,9 +319,10 @@ proc mc:dnsb:dnsreturn_ \
   if {![matchban $nuhost_ $channel] &&
       ![mc:dnsb:matchchanban $nuhost_ $channel] &&
       ![string match [string tolower $addition] $nuhost_]} {return 0}
-  
+
   set banmask [mc:dnsb:maskhostbytype $nick!$ident@$host_origional \
     $mc_dnsb(:config:banmask)]
+
   set cache(exempt:op) [channel get $channel mc.dns_bans.exempt.op]
   set cache(exempt:voice) [channel get $channel mc.dns_bans.exempt.voice]
   set cache(exempt:flags) [channel get $channel mc.dns_bans.exempt.flags]
@@ -334,17 +335,17 @@ proc mc:dnsb:dnsreturn_ \
     set uhost [getchanhost $nick]
     set handle [nick2hand $nick]
     set nuhost_ [string tolower $nick!$uhost]
-    
+
     if {(($cache(exempt:flags) != "") &&
          [matchattr $handle $cache(exempt:flags) $channel]) ||
         ![string match $banmask $nuhost_]} {continue}
     lappend list $nick
   }
-  
+
   if {[channel get $channel dynamicbans]} {
     if {[llength $list]} {putserv "MODE $channel +b $banmask"}
   } else {putserv "MODE $channel +b $banmask"}
-  
+
   if {[channel get $channel enforcebans] ||
       [channel get $channel mc.dns_bans.enforcebans]} {
     foreach nick $list {
@@ -678,6 +679,10 @@ putloglev o * "$mc_dnsb(script) $mc_dnsb(version) by MC_8 loaded."
 ##
 # History  ( <Fixed by> - [Found by] - <Info> )
 ##
+# v1.3.1 (04.04.04)
+#  MC_8 - AntiProxy - Script would not dns ban those with caps in there
+#                     banmask.
+#
 # v1.3 (08.17.03)
 #  MC_8 - Jojo /  - Script now does it's own kick enforcement bassed off
 #         Mike      enforcebans and mc.dns_bans.enforcebans chanset.
